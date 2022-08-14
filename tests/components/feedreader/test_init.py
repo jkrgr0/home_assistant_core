@@ -70,17 +70,23 @@ async def fixture_events(hass):
     return async_capture_events(hass, EVENT_FEEDREADER)
 
 
-@pytest.fixture(name="feed_storage", autouse=True)
-def fixture_feed_storage():
+@pytest.fixture(name="feed_legacy_storage", autouse=True)
+def fixture_feed_legacy_storage():
     """Mock builtins.open for feedreader storage."""
-    with patch("homeassistant.components.feedreader.open", mock_open(), create=True):
-        yield
+    with patch(
+        "homeassistant.components.feedreader.open",
+        mock_open(),
+        create=True,
+    ), patch(
+        "homeassistant.components.feedreader.pickle.load", return_value={}
+    ) as pickle_load:
+        yield pickle_load
 
 
 async def test_setup_one_feed(hass: HomeAssistant) -> None:
     """Test the general setup of this component."""
     with patch(
-        "homeassistant.components.feedreader.track_time_interval"
+        "homeassistant.components.feedreader.async_track_time_interval"
     ) as track_method:
         assert await async_setup_component(hass, feedreader.DOMAIN, VALID_CONFIG_1)
         await hass.async_block_till_done()
@@ -93,7 +99,7 @@ async def test_setup_one_feed(hass: HomeAssistant) -> None:
 async def test_setup_scan_interval(hass: HomeAssistant) -> None:
     """Test the setup of this component with scan interval."""
     with patch(
-        "homeassistant.components.feedreader.track_time_interval"
+        "homeassistant.components.feedreader.async_track_time_interval"
     ) as track_method:
         assert await async_setup_component(hass, feedreader.DOMAIN, VALID_CONFIG_2)
         await hass.async_block_till_done()
